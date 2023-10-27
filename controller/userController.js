@@ -98,15 +98,81 @@ export const getfriendRequest = async (req, res) => {
         }).populate({
             path: 'requestFrom',
             select: 'firstName lastName profileUrl profession -password'
-        })
+        }).limit(10).sort({_id: -1});
+
+        return res.status(200).json({
+            data: request
+        });
     } catch (error) {
         return res.status(404).json(`Error: ${error.message}`);
     }
 }
 
-export const acceptFriendRequest = async (req, res) => {
+export const acceptFriendRequest = async (req, res, next) => {
     try {
-        
+        const userId = req.user.userId;
+
+        const { requestId, status } = req.body;
+ 
+        const requestExist = await FriendRequest.findById(requestId);
+
+        if(!requestExist) {
+            next('no friend request found');
+            return;
+        }
+
+        const newRes = await FriendRequest.findByIdAndUpdate({_id: requestId}, {requestStatus: status});
+
+        if(status === 'Accepted') {
+            const user = await User.findById(userId);
+            user.friends.push(newRes?.requestFrom);
+            await user.save();
+
+            const friend = await User.findById(newRes?.requestFrom);
+            friend.friends.push(newRes?.requestTo);
+            await friend.save();
+        }
+
+        res.status(201).json({
+            message: 'Friend Request' + status,
+        })
+
+    } catch (error) {
+        return res.status(404).json(`Error: ${error.message}`);
+    }
+}
+
+export const profileViews = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const { id } = req.body;
+
+        const user = await User.findById(id);
+        user.views.push(userId);
+        await user.save();
+
+        res.status(201).json({
+            message: 'successfully'
+        });
+    } catch (error) {
+        return res.status(404).json(`Error: ${error.message}`);
+    }
+}
+
+export const suggestedFriends = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+
+        let queryResult = User.find(
+            {$ne: userId}, 
+            {$nin: userId}).limit(15)
+            .select('firstName lastName profileUrl profession -password')
+
+        const suggestedFriends = await queryResult;
+        return res.status(200).json({
+            data: suggestedFriends,
+        })
     } catch (error) {
         return res.status(404).json(`Error: ${error.message}`);
     }
