@@ -3,18 +3,21 @@ import userAuth from '../middleware/authMiddleware.js';
 import { 
     getUser, 
     updateUser,
-    friendRequest, 
-    getfriendRequest, 
+    createFriendRequest, 
+    getFriendRequest, 
     acceptFriendRequest,
-    profileViews
+    profileViews,
+    suggestedFriends
  } from '../controller/userController.js';
 
 const router = express.Router();
 
-router.use('/:id', userAuth).get(getUser).put(updateUser);
-router.post('/friendRequest', userAuth, friendRequest);
-router.get('/getfriendRequest', userAuth, getfriendRequest);
+router.get('/:id?', userAuth, getUser);
+router.put('/:id', userAuth, updateUser);
+router.post('/friendRequest', userAuth, createFriendRequest);
+router.get('/getFriendRequest', userAuth, getFriendRequest);
 router.post('/acceptFriendRequest', userAuth, acceptFriendRequest);
-router.post('/profileView', userAuth, profileViews)
+router.post('/profileView', userAuth, profileViews);
+router.post('suggestedFriend', userAuth, suggestedFriends);
 
 export default router;

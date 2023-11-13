@@ -2,7 +2,10 @@ import { FriendRequest, User } from "../model/index.js";
 
 export const getUser = async (req, res, next) => {
     try {
-        const user = await User.findById(req.params.id).populate({
+
+        const userId  = req.user._id;
+        
+        const user = await User.findById(req.params.id ?? userId).populate({
             path: 'friends',
             select: '-password'
         });
@@ -49,9 +52,9 @@ export const updateUser = async (req, res, next) => {
     }
 }
 
-export const friendRequest = async (req, res, next) => {
+export const createFriendRequest = async (req, res, next) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user._id;
         const { requestTo } = req.body;
 
         const requestExist1 = await FriendRequest.findOne({
@@ -88,10 +91,11 @@ export const friendRequest = async (req, res, next) => {
     }
 }
 
-export const getfriendRequest = async (req, res) => {
+export const getFriendRequest = async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user._id;
 
+        console.log(userId);
         const request  = await FriendRequest.find({
             requestTo: userId,
             requestStatus: 'Pending'
@@ -99,6 +103,7 @@ export const getfriendRequest = async (req, res) => {
             path: 'requestFrom',
             select: 'firstName lastName profileUrl profession -password'
         }).limit(10).sort({_id: -1});
+        console.log(request)
 
         return res.status(200).json({
             data: request
@@ -110,7 +115,7 @@ export const getfriendRequest = async (req, res) => {
 
 export const acceptFriendRequest = async (req, res, next) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user._id;
 
         const { requestId, status } = req.body;
  
@@ -144,7 +149,7 @@ export const acceptFriendRequest = async (req, res, next) => {
 
 export const profileViews = async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user._id;
 
         const { id } = req.body;
 
@@ -153,6 +158,7 @@ export const profileViews = async (req, res) => {
         await user.save();
 
         res.status(201).json({
+            status: true,
             message: 'successfully'
         });
     } catch (error) {
@@ -162,11 +168,11 @@ export const profileViews = async (req, res) => {
 
 export const suggestedFriends = async (req, res, next) => {
     try {
-        const userId = req.user.userId;
+        const userId = req.user._id;
 
         let queryResult = User.find(
-            {$ne: userId}, 
-            {$nin: userId}).limit(15)
+            {_id : {$ne: userId}}, 
+            {friends:{$nin: userId}}).limit(15)
             .select('firstName lastName profileUrl profession -password')
 
         const suggestedFriends = await queryResult;
