@@ -94,22 +94,19 @@ export const createFriendRequest = async (req, res, next) => {
 export const getFriendRequest = async (req, res) => {
     try {
         const userId = req.user._id;
-
-        console.log(userId);
         const request  = await FriendRequest.find({
             requestTo: userId,
             requestStatus: 'Pending'
         }).populate({
             path: 'requestFrom',
-            select: 'firstName lastName profileUrl profession -password'
+            select: 'firstName lastName profileUrl profession',
         }).limit(10).sort({_id: -1});
-        console.log(request)
 
         return res.status(200).json({
             data: request
         });
     } catch (error) {
-        return res.status(404).json(`Error: ${error.message}`);
+        return res.status(400).json(`Error: ${error.message}`);
     }
 }
 
@@ -139,7 +136,7 @@ export const acceptFriendRequest = async (req, res, next) => {
         }
 
         res.status(201).json({
-            message: 'Friend Request' + status,
+            message: 'Friend Request ' + status,
         })
 
     } catch (error) {

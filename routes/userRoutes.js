@@ -15,7 +15,7 @@ const router = express.Router();
 router.get('/:id?', userAuth, getUser);
 router.put('/:id', userAuth, updateUser);
 router.post('/friendRequest', userAuth, createFriendRequest);
-router.get('/getFriendRequest', userAuth, getFriendRequest);
+router.post('/getFriendRequest', userAuth, getFriendRequest);
 router.post('/acceptFriendRequest', userAuth, acceptFriendRequest);
 router.post('/profileView', userAuth, profileViews);
 router.post('suggestedFriend', userAuth, suggestedFriends);
