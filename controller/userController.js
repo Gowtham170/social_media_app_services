@@ -82,7 +82,7 @@ export const createFriendRequest = async (req, res, next) => {
             requestTo
         });
 
-        res.status(201).json({
+        return res.status(201).json({
             message: 'friend request sent successfully'
         })
 
@@ -135,7 +135,7 @@ export const acceptFriendRequest = async (req, res, next) => {
             await friend.save();
         }
 
-        res.status(201).json({
+        return res.status(201).json({
             message: 'Friend Request ' + status,
         })
 
@@ -154,7 +154,7 @@ export const profileViews = async (req, res) => {
         user.views.push(userId);
         await user.save();
 
-        res.status(201).json({
+        return res.status(201).json({
             status: true,
             message: 'successfully'
         });

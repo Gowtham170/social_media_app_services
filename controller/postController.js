@@ -4,6 +4,7 @@ import {
     Comment
 } from '../model/index.js';
 
+// create post
 export const createPost = async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -11,6 +12,7 @@ export const createPost = async (req, res, next) => {
 
         if (!description) {
             next('you must provide a description');
+            return;
         }
         const post = new Post({
             userId,
@@ -30,6 +32,7 @@ export const createPost = async (req, res, next) => {
     }
 }
 
+// get all post(or) get searched post
 export const getPosts = async (req, res, next) => {
     try {
         const userId = req.user._id;
@@ -63,7 +66,7 @@ export const getPosts = async (req, res, next) => {
             postRes = posts;
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: postRes
         });
@@ -73,6 +76,7 @@ export const getPosts = async (req, res, next) => {
     }
 }
 
+// get specific post by id
 export const getPost = async (req, res, next) => {
     try {
         const id = req.params.id;
@@ -82,7 +86,7 @@ export const getPost = async (req, res, next) => {
             select: 'firstName lastName location profileUrl -password'
         });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: post
         });
@@ -91,6 +95,23 @@ export const getPost = async (req, res, next) => {
     }
 }
 
+//delete post 
+export const deletePost = async (req, res, next) => {
+    try {
+        const postId = req.params.id;
+
+        await Post.findByIdAndDelete(postId);
+
+        res.status(200).json({
+            success: true,
+            message: 'deleted successfully'
+        })
+    } catch (error) {
+        return res.status(400).json(`Error: ${error.message}`);
+    }
+}
+
+// get all post from a specific user
 export const getUserPost = async (req, res, next) => {
     try {
         const id = req.params.id;
@@ -100,7 +121,7 @@ export const getUserPost = async (req, res, next) => {
             select: 'firstName lastName location profileUrl -password'
         }).sort({ _id: -1 });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: post
         });
@@ -109,6 +130,7 @@ export const getUserPost = async (req, res, next) => {
     }
 }
 
+// get all comments from a specific post
 export const getComments = async (req, res, next) => {
     try {
         const postId = req.params.postId;
@@ -121,7 +143,7 @@ export const getComments = async (req, res, next) => {
             select: 'firstName lastName location profileUrl -password'
         }).sort({ _id: -1 });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: postComments
         });
@@ -130,10 +152,11 @@ export const getComments = async (req, res, next) => {
     }
 }
 
+// like(or) unlike a specific post
 export const likePost = async (req, res, next) => {
     try {
         const userId = req.user._id;
-        const postId = req.params.postId;
+        const postId = req.params.id;
 
         const post = await Post.findById(postId);
 
@@ -154,7 +177,7 @@ export const likePost = async (req, res, next) => {
             new: true
         });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: newPost
         });
@@ -163,10 +186,11 @@ export const likePost = async (req, res, next) => {
     }
 }
 
+// like(or) unlike a post comment
 export const likePostComment = async (req, res, next) => {
     try {
         const userId = req.user._id;
-        const commentId = req.params.commentId;
+        const commentId = req.params.id;
 
 
         const comment = await Comment.findById(commentId);
@@ -180,7 +204,7 @@ export const likePostComment = async (req, res, next) => {
             new: true
         });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: updated
         });
@@ -190,40 +214,69 @@ export const likePostComment = async (req, res, next) => {
     }
 }
 
+// create a comment for a specific post
+export const commentPost = async(req, res, next) => {
+    try {
+        const userId = req.user._id;
+        const postId = req.params.id;
+        const { comment, from } = req.body;
 
+        if(!comment) {
+            // res.status(404).json({ message: 'Comment is required'});
+            next('comment is required');
+            return;
+        }
 
-// else {
-//     const replyComments =  await Comment.findOne({_id: commentId}, {
-//         replies: {
-//             $elemMatch: {
-//                 _id: rid,
-//             }
-//         },
-//     });
+        const newComment = new Comment({
+            comment,
+            from,
+            userId,
+            postId
+        });
 
-//     const index = replyComments?.replies[0]?.likes.findIndex(
-//         (i) => i === String(userId)
-//     );
+        const savedComment = await newComment.save();
 
-//     if(index === -1) {
-//         replyComments.replies[0].likes.push(userId);
-//     } else {
-//         replyComments.replies[0].likes = replyComments.replies[0]?.likes.filter(
-//             (i) => i !== String(userId)
-//         );
-//     }
+        //updating comment to the post
+        const post = await Post.findById(postId);
+        post.comments.push(savedComment._id);
 
-//     const query = { _id, commentId, 'replies._id': rid};
+        await Post.findByIdAndUpdate(postId, post, ({
+            new: true
+        }));
 
-//     const updated = {
-//         $set: {
-//             'replies.$.likes': replyComments.replies[0].likes,
-//         }
-//     }
+        res.status(201).json(savedComment);
 
-//     const result = await Comment.updateOne(query, updated, {
-//         new: true
-//     });
+    } catch (error) {
+        return res.status(400).json(`Error: ${error.message}`);
+    }
+}
 
-//     res.status(200).json(result);
-// }
+// reply for a particular post comment
+export const replyPostComment = async(req, res, next) => {
+    try {
+        const userId = req.user._id;
+        const commentId = req.params.id;
+        const { comment, replyAt, from } = req.body;
+
+        if(!comment) {
+            // res.status(404).json({ message: 'Comment is required'});
+            next('comment is required');
+            return
+        }
+
+        const commentInfo = await Comment.findById(commentId);
+
+        commentInfo.replies.push({
+            comment,
+            replyAt,
+            from,
+            userId,
+            created_At: Date.now()
+        });
+
+        const savedCommentInfo = await commentInfo.save();
+        return res.status(200).json(savedCommentInfo);
+    } catch (error) {
+        return res.status(400).json(`Error: ${error.message}`);
+    }
+}
