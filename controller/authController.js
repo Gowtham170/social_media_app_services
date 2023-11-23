@@ -56,7 +56,7 @@ export const login = async (req, res, next) => {
         // checking for the existence of the user
         const user = await User.findOne({ email }).select('+password').populate({
             path: 'friends',
-            select: 'firstName lastName location profileUrl -password'
+            select: 'firstName lastName location profileUrl',
         });
         if(!user) {
             next('Invalid email');

@@ -47,7 +47,7 @@ export const getPosts = async (req, res, next) => {
         const posts = await Post.find(search ? { $or: [{ description: { $regex: search, $options: 'i' }, }] } : {})
             .populate({
                 path: 'userId',
-                select: 'firstName lastName location profileUrl -password',
+                select: 'firstName lastName location profileUrl',
             })
             .sort({ _id: -1 });
 
@@ -81,9 +81,10 @@ export const getPost = async (req, res, next) => {
     try {
         const id = req.params.id;
 
-        const post = await Post.findById(id).populate({
+        const post = await Post.findById(id)
+        .populate({
             path: 'userId',
-            select: 'firstName lastName location profileUrl -password'
+            select: 'firstName lastName location profileUrl'
         });
 
         return res.status(200).json({
@@ -100,12 +101,18 @@ export const deletePost = async (req, res, next) => {
     try {
         const postId = req.params.id;
 
-        await Post.findByIdAndDelete(postId);
+        const post = await Post.findById(postId);
+        if(post) {
+            await Post.deleteOne({ _id: post._id});
+            return res.status(200).json({ 
+                success: true,
+                message: 'post deleted successfully'
+            });
+        } else {
+            next('post not found');
+            return;
+        }
 
-        res.status(200).json({
-            success: true,
-            message: 'deleted successfully'
-        })
     } catch (error) {
         return res.status(400).json(`Error: ${error.message}`);
     }
@@ -118,7 +125,7 @@ export const getUserPost = async (req, res, next) => {
 
         const post = await Post.find({ userId: id }).populate({
             path: 'userId',
-            select: 'firstName lastName location profileUrl -password'
+            select: 'firstName lastName location profileUrl'
         }).sort({ _id: -1 });
 
         return res.status(200).json({
@@ -131,16 +138,16 @@ export const getUserPost = async (req, res, next) => {
 }
 
 // get all comments from a specific post
-export const getComments = async (req, res, next) => {
+export const getPostComments = async (req, res, next) => {
     try {
-        const postId = req.params.postId;
+        const postId = req.params.id;
 
         const postComments = await Comment.find({ postId }).populate({
             path: 'userId',
-            select: 'firstName lastName location profileUrl -password'
+            select: 'firstName lastName location profileUrl'
         }).populate({
             path: 'replies.userId',
-            select: 'firstName lastName location profileUrl -password'
+            select: 'firstName lastName location profileUrl'
         }).sort({ _id: -1 });
 
         return res.status(200).json({
@@ -192,7 +199,6 @@ export const likePostComment = async (req, res, next) => {
         const userId = req.user._id;
         const commentId = req.params.id;
 
-
         const comment = await Comment.findById(commentId);
 
         const index = comment.likes.findIndex((uId) => uId === String(userId));
@@ -200,7 +206,7 @@ export const likePostComment = async (req, res, next) => {
         if (index === -1) comment.likes.push(userId);
         else comment.likes = comment.likes.filter((uId) => uId !== String(userId));
 
-        const updated = await Comment.findById(commentId, Comment, {
+        const updated = await Comment.findByIdAndUpdate(commentId, comment, {
             new: true
         });
 
