@@ -24,6 +24,7 @@ app.use(express.static('public'));
 // routes
 app.use(routes);
 // file upload
+//app.use('/api/upload', uploadRoutes);
 app.use('/', express.static('uploads'));
 
 app.listen(process.env.PORT, () => {
